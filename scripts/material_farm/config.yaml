@@ -1,6 +1,10 @@
 app_title: "Where Winds Meet"
-material_match_threshold: 0.6
+log_level: "INFO"
+material_match_threshold: 0.65
 waypoint_match_threshold: 0.6
+top_n_closest: 5
+seconds_till_revisit: 300
+seconds_for_loading_screen: 10
 key_stop_script: 'F3'
 key_wayfinder: 'v'
 key_confirm: ' '

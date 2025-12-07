@@ -16,9 +16,13 @@ These macros simulate keyboard presses and screenshots and do NOT inject or mani
 ## Setup (Do this first)
 1. Clone repo into a folder.
 2. Open command prompt as admin.
-3. Type the following commands while in the current directory of the project root folder. Replace the path with where your project folder is.
+3. Use the command to move to the project root folder, where the files requirements.txt and pyproject.toml are. Replace the path with where your project folder is.
     ```
     cd "root\folder\path\here"
+    ```
+    Once you are in the project root folder, run the follow commands:
+    ```
     pip install -r requirements.txt
+    pip install -e .
     ```
 4. Select a script folder and continue to follow their README.

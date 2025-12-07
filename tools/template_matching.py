@@ -13,7 +13,14 @@ img_rgb = window.get_screenshot()
 assert img_rgb is not None, "Screenshot could not be captured."
 
 coords, _ = window.get_coords_template_match(template_name, threshold=threshold)
-for x, y in coords:
+center_x, center_y = window.get_center()
+print(center_x, center_y)
+# Sort all waypoint coords by distance to the center of the window
+coords_sorted = sorted(
+    coords,
+    key=lambda p: (p[0] - center_x) ** 2 + (p[1] - center_y) ** 2
+)
+for x, y in coords_sorted[:5]:
     cv.circle(img_rgb, (x, y), radius=16, color=(0, 0, 255), thickness=2)
 
 cv.imshow("Template Match Result", img_rgb)

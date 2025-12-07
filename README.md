@@ -1,13 +1,15 @@
-# Where-Winds-Meet-Macros
-Lightweight collection of simple to advanced Python macros for the game Where Winds Meet.
+# Where Winds Meet Scripts
+Lightweight collection of simple to advanced Python scripts for the game Where Winds Meet.
 
-These version of macros will allow you to minimize the game window and have this running in the background.
-It is recommended to lower your graphics settings and fps for long macro sessions. 
+Depending on the script, it will allow you to minimize the game window and have this running in the background.
+Scripts that utilize computer vision will not be able to be minimized while activate.
+It is recommended to lower your graphics/resolution/fps settings for long sessions. 
 
 ## WARNING
 These macros simulate keyboard presses and screenshots and do NOT inject or manipulate anything in memory. Therefore, it will be very difficult to detect. Either way, it may break terms of service so USE AT YOUR OWN RISK.
 
 ## Requirements
+- Where Winds Meet game
 - Windows 10+
 - Python 3.10x+
 

@@ -29,6 +29,7 @@ class Window:
 
     def get_screenshot(self, dimensions=None):
 
+        self.window.set_focus()
         with mss.mss() as sct:
             if dimensions is None:
                 dimensions = self.get_window_dimensions()
@@ -52,17 +53,19 @@ class Window:
         img_gray = cv.cvtColor(img_rgb, cv.COLOR_BGR2GRAY)
 
         template_gray = get_gray_template_image(template_name)
-        w, h = template_gray.shape[::-1]
-        res = cv.matchTemplate(img_gray, template_gray, cv.TM_CCOEFF_NORMED)
+        assert template_gray is not None, "template file could not be read"
+        h, w = template_gray.shape
 
+        res = cv.matchTemplate(img_gray, template_gray, cv.TM_CCOEFF_NORMED)
         loc = np.where(res >= threshold)
+
         coords = []
         for pt in zip(*loc[::-1]):  # Get center coords
             x = pt[0] + w // 2
             y = pt[1] + h // 2
             coords.append((x, y))
 
-        return coords
+        return coords, img_gray
 
     def set_focus(self):
         self.window.set_focus()

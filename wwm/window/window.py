@@ -38,15 +38,33 @@ class Window:
 
         return center_x, center_y
 
-    def get_screenshot(self, dimensions=None):
+    def get_screenshot(self, dimensions=None, letterbox_size=0, pillarbox_size=0):
+        """
+        Take a screenshot and replace the sides with black pixels.
 
+        letterbox_size: number of pixels to black out at top and bottom
+        pillarbox_size: number of pixels to black out at left and right
+        """
         self.window.set_focus()
         with mss.mss() as sct:
             if dimensions is None:
                 dimensions = self.get_window_dimensions()
             raw_screenshot = np.array(sct.grab(dimensions))
             screenshot = cv.cvtColor(raw_screenshot, cv.COLOR_BGRA2BGR)
-            return screenshot
+
+        h, w, c = screenshot.shape
+
+        # Black out top and bottom (letterbox)
+        if letterbox_size > 0:
+            screenshot[:letterbox_size, :, :] = 0           # top
+            screenshot[h - letterbox_size:, :, :] = 0      # bottom
+
+        # Black out left and right (pillarbox)
+        if pillarbox_size > 0:
+            screenshot[:, :pillarbox_size, :] = 0         # left
+            screenshot[:, w - pillarbox_size:, :] = 0     # right
+
+        return screenshot
 
     def send_keystrokes(self, keystrokes):
         self.window.send_keystrokes(keystrokes)
@@ -59,7 +77,7 @@ class Window:
         self.window.click_input(coords=(x, y))
 
     def get_coords_template_match(self, template_name, threshold=0.75, nms_thresh=0.3):
-        img_rgb = self.get_screenshot()
+        img_rgb = self.get_screenshot(pillarbox_size=400) # TODO: Make this dynamic, 400 is enough to cover the sides on a 1600x900
         assert img_rgb is not None, "Screenshot could not be captured."
         img_gray = cv.cvtColor(img_rgb, cv.COLOR_BGR2GRAY)
 

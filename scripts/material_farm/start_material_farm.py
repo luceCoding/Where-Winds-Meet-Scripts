@@ -63,25 +63,6 @@ def main():
 
     visited_queue = deque()
 
-    def unstuck():
-        waypoint_coords = []
-        for png in image.list_png_files('waypoints'):
-            found_coords, _ = window.get_coords_template_match(
-                png,
-                threshold=waypoint_match_threshold,
-            )
-            waypoint_coords += found_coords
-
-        if len(waypoint_coords):  # we are stuck, map still open
-            logger.info("Stuck detected, taking waypoint.")
-            waypoint_coords = random.choice(waypoint_coords)
-            x, y = waypoint_coords
-            window.send_left_mouse_click(int(x), int(y))
-            time.sleep(sleep_timer)
-            window.send_keystrokes(key_confirm)
-            # Wait for loading screen
-            time.sleep(seconds_for_loading_screen)
-
     while not stop_flag["stop"]:
 
         # Close "Select a new destination?" dialog
@@ -108,12 +89,14 @@ def main():
             )
             coords += found_coords
 
-        center_x, center_y = window.get_center()
-        # Sort all waypoint coords by distance to the center of the window
-        coords_sorted = sorted(
-            coords,
-            key=lambda p: (p[0] - center_x) ** 2 + (p[1] - center_y) ** 2
-        )
+        if last_img_gray is not None:
+            center_x = last_img_gray.shape[1] // 2
+            center_y = last_img_gray.shape[0] // 2
+            # Sort all waypoint coords by distance to the center of the window
+            coords_sorted = sorted(
+                coords,
+                key=lambda p: (p[0] - center_x) ** 2 + (p[1] - center_y) ** 2
+            )
 
         crop_64 = None
         for idx, _ in enumerate(coords_sorted):

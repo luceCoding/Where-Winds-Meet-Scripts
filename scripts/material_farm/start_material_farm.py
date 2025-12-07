@@ -147,7 +147,7 @@ def main():
                              has_black_letterbox, has_white_letterbox)
 
         screenshot = window.get_screenshot()
-        has_gray_letterbox = image.has_bottom_gray_letterbox(screenshot)
+        has_gray_letterbox = image.has_center_gray_band(screenshot)
         if has_gray_letterbox:
             logger.debug("Gray letterbox detected.")
             window.send_keystrokes(key_confirm)

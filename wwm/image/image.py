@@ -45,17 +45,49 @@ def has_bottom_black_letterbox(image, n_rows=75, min_black=1):
     return False
 
 
-def has_bottom_gray_letterbox(image, n_rows=75, min_gray=47, max_gray=53):
+def has_center_gray_band(image, n_rows=100, min_gray=45, max_gray=50, threshold=0.2):
+    """
+    Checks if the horizontal center band of the image is mostly gray.
+
+    image: np.array (H x W x C)
+    n_rows: height of the band
+    min_gray, max_gray: grayscale intensity range to consider as gray
+    threshold: fraction of pixels that must be gray to return True
+    """
+    band = get_horizontal_center_band(image, n_rows=n_rows)
+
+    # Convert to grayscale
+    gray_band = cv.cvtColor(band, cv.COLOR_BGR2GRAY)
+
+    # Count how many pixels fall in the gray range
+    gray_pixels = ((gray_band >= min_gray) & (gray_band <= max_gray)).sum()
+    total_pixels = gray_band.size
+
+    fraction_gray = gray_pixels / total_pixels
+
+    # Optional: print for debugging
+    print(
+        f"Gray fraction: {fraction_gray:.2f}, mean intensity: {gray_band.mean():.2f}")
+
+    return fraction_gray >= threshold
+
+
+def get_horizontal_center_band(image, n_rows=100):
+    """
+    Returns a horizontal band (strip) across the center of the image.
+
+    image: np.array (H x W x C)
+    n_rows: number of rows to include in the band
+    """
     arr = np.array(image)
+    h = arr.shape[0]
 
-    bottom_band = arr[-(n_rows + 25):-25, :, :]
-    bottom_mean = bottom_band.mean()
+    # Calculate start and end rows for center band
+    start_row = h // 2 - n_rows // 2
+    end_row = start_row + n_rows
 
-    # print(bottom_mean)
-
-    if bottom_mean < max_gray and bottom_mean > min_gray:  # Look for grayish pixels
-        return True
-    return False
+    center_band = arr[start_row:end_row, :, :]
+    return center_band
 
 
 def has_bottom_white_letterbox(image, n_rows=75, min_white=200):

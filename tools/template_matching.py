@@ -1,9 +1,10 @@
 import cv2 as cv
 from wwm.window import Window
+from wwm.image import image
 
-#template_name = "template_buddhas_tear.png"
+# template_name = "template_buddhas_tear.png"
 template_name = "template_jade_tower_peony.png"
-#template_name = "template_waypoint.png"
+# template_name = "template_waypoint.png"
 
 threshold = 0.6
 
@@ -12,7 +13,8 @@ window = Window()
 img_rgb = window.get_screenshot()
 assert img_rgb is not None, "Screenshot could not be captured."
 
-coords, _ = window.get_coords_template_match(template_name, threshold=threshold)
+coords, _ = window.get_coords_template_match(
+    template_name, threshold=threshold)
 center_x = _.shape[1] // 2
 center_y = _.shape[0] // 2
 print(center_x, center_y)

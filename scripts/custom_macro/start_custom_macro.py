@@ -1,4 +1,5 @@
 from pywinauto.application import Application
+import random
 import keyboard
 import yaml
 import time
@@ -6,18 +7,20 @@ import os
 import sys
 
 
-def run_step(game, actions, sleep_time, stop_flag):
+def run_step(game, actions, min_delay, max_delay, stop_flag):
     """Send keystrokes safely."""
     if stop_flag["stop"]:
         return False
+
+    random_delay = random.uniform(1.0, 5.0)
 
     for a in actions:
         game.send_keystrokes(a)
         if stop_flag["stop"]:
             return False
 
-    if sleep_time:
-        time.sleep(sleep_time)
+    if random_delay:
+        time.sleep(random_delay)
         if stop_flag["stop"]:
             return False
 
@@ -74,8 +77,8 @@ def main():
     n_rotations = 0
 
     while not stop_flag["stop"]:
-        for actions, delay in steps:
-            if not run_step(game, actions, delay, stop_flag):
+        for actions, min_delay, max_delay in steps:
+            if not run_step(game, actions, min_delay, max_delay, stop_flag):
                 return
 
         n_rotations += 1

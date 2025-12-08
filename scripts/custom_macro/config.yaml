@@ -10,5 +10,5 @@ key_stop_script: 'F3'
 # Look at the pywinauto documentation send_keystrokes() for any advanced keystrokes you may need, such as holding down a key, etc...
 # ------------------------------
 steps: [
-  ["e", 1],
+  ["f", 1, 3],
 ]

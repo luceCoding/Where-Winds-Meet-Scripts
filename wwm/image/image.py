@@ -48,7 +48,7 @@ def has_bottom_black_letterbox(image, n_rows=75, min_black=1):
     return False
 
 
-def has_center_gray_band(image, n_rows=100, min_gray=45, max_gray=50, threshold=0.2):
+def has_center_gray_band(image, n_rows=100, min_gray=45, max_gray=50, threshold=0.18):
     """
     Checks if the horizontal center band of the image is mostly gray.
 
@@ -95,7 +95,7 @@ def get_horizontal_center_band(image, n_rows=100):
 def has_bottom_white_letterbox(image, n_rows=75, min_white=200):
     arr = np.array(image)
 
-    bottom_band = arr[-(n_rows + 25):-25, :, :]
+    bottom_band = arr[-(n_rows):, :, :]
     bottom_mean = bottom_band.mean()
 
     # print(bottom_mean)
@@ -166,9 +166,6 @@ def apply_map_mask(image):
 
 
 def get_coords_template_match(img_gray, template_name, threshold=0.75, nms_thresh=0.3):
-    # img_rgb = self.get_screenshot()
-    # assert img_rgb is not None, "Screenshot could not be captured."
-    # img_gray = cv.cvtColor(img_rgb, cv.COLOR_BGR2GRAY)
 
     template_gray = get_gray_template_image(template_name)
     assert template_gray is not None, "template file could not be read"

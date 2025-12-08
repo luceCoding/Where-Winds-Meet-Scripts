@@ -35,6 +35,7 @@ def main():
     app_title = config["app_title"]
     material_match_threshold = config["material_match_threshold"]
     waypoint_match_threshold = config["waypoint_match_threshold"]
+    visited_match_threshold = config["visited_match_threshold"]
     top_n_closest = config["top_n_closest"]
     seconds_for_each_material = config["seconds_for_each_material"]
     seconds_till_revisit = config["seconds_till_revisit"]
@@ -63,6 +64,12 @@ def main():
         logger.info("Stop key pressed — stopping program...")
 
     keyboard.add_hotkey(key_stop_script, stop)
+
+    # ------------------------------
+    # Reset for pre-session state
+    # ------------------------------
+    for _ in range(4):
+        window.send_keystrokes(key_escape)
 
     visited_queue = deque()
     unreachable_materials = deque(maxlen=100)
@@ -106,26 +113,31 @@ def main():
             )
 
         crop_64 = None
+        path_found = False
         for idx, _ in enumerate(coords_sorted):
             coord = random.choice(coords_sorted[idx:idx+top_n_closest])
             x, y = coord
             crop_64 = image.get_crop_around(last_img_gray, x, y, size=64)
             has_similar = any(image.get_image_similarity(
-                img[1], crop_64) >= 0.9 for img in visited_queue)
+                img[1], crop_64) >= visited_match_threshold for img in visited_queue)
             if not has_similar:
                 is_unreachable = any(image.get_image_similarity(
-                    img, crop_64) >= 0.9 for img in unreachable_materials)
+                    img, crop_64) >= visited_match_threshold for img in unreachable_materials)
                 if is_unreachable:
                     logger.debug("Image is unreachable.")
                     continue
                 logger.debug("Image is not similar.")
                 window.send_left_mouse_click(int(x), int(y))
                 time.sleep(sleep_timer)
-                window.send_keystrokes(key_wayfinder)  # Auto Path to destination
+                # Auto Path to destination
+                window.send_keystrokes(key_wayfinder)
                 time.sleep(sleep_timer)
+                path_found = True
                 break
             else:
                 logger.debug("Image is similar.")
+        if path_found is False:
+            logger.info("No path found.")  # TODO: Expand search area
 
         # Check if stuck
         waypoint_coords = []

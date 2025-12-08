@@ -6,7 +6,7 @@ from wwm.image import image
 template_name = "template_jade_tower_peony.png"
 # template_name = "template_waypoint.png"
 
-threshold = 0.6
+threshold = 0.65
 
 # Take a screenshot
 window = Window()

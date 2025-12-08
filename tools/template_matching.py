@@ -10,11 +10,20 @@ threshold = 0.6
 
 # Take a screenshot
 window = Window()
-img_rgb = window.get_screenshot()
-assert img_rgb is not None, "Screenshot could not be captured."
 
-coords, _ = window.get_coords_template_match(
-    template_name, threshold=threshold)
+img_gray = window.get_gray_screenshot()
+assert img_gray is not None, "Screenshot could not be captured."
+img_rgb = cv.cvtColor(img_gray, cv.COLOR_GRAY2BGR)
+
+img_gray = image.apply_map_mask(img_gray)
+img_rgb = image.apply_map_mask(img_rgb)
+
+coords, _ = image.get_coords_template_match(
+    img_gray,
+    template_name,
+    threshold=threshold,
+)
+
 center_x = _.shape[1] // 2
 center_y = _.shape[0] // 2
 print(center_x, center_y)

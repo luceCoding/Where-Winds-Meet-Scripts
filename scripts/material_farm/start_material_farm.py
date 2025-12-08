@@ -86,8 +86,11 @@ def main():
 
         # Select destination
         coords = []
+        screenshot = window.get_gray_screenshot()
+        screenshot = image.apply_map_mask(screenshot)
         for png in image.list_png_files('materials'):
-            found_coords, last_img_gray = window.get_coords_template_match(
+            found_coords, last_img_gray = image.get_coords_template_match(
+                screenshot,
                 png,
                 threshold=material_match_threshold,
             )
@@ -118,17 +121,19 @@ def main():
                 logger.debug("Image is not similar.")
                 window.send_left_mouse_click(int(x), int(y))
                 time.sleep(sleep_timer)
+                window.send_keystrokes(key_wayfinder)  # Auto Path to destination
+                time.sleep(sleep_timer)
                 break
             else:
                 logger.debug("Image is similar.")
 
-        window.send_keystrokes(key_wayfinder)  # Auto Path
-        time.sleep(sleep_timer)
-
         # Check if stuck
         waypoint_coords = []
+        screenshot = window.get_gray_screenshot()
+        screenshot = image.apply_map_mask(screenshot)
         for png in image.list_png_files('waypoints'):
-            found_coords, _ = window.get_coords_template_match(
+            found_coords, _ = image.get_coords_template_match(
+                screenshot,
                 png,
                 threshold=waypoint_match_threshold,
             )
@@ -174,8 +179,11 @@ def main():
             time.sleep(sleep_timer)
 
             waypoint_coords = []
+            screenshot = window.get_gray_screenshot()
+            screenshot = image.apply_map_mask(screenshot)
             for png in image.list_png_files('waypoints'):
-                found_coords, _ = window.get_coords_template_match(
+                found_coords, _ = image.get_coords_template_match(
+                    screenshot,
                     png,
                     threshold=waypoint_match_threshold,
                 )

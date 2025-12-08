@@ -120,3 +120,87 @@ def get_crop_around(img_gray, x, y, size=64):
 def get_image_similarity(image_a, image_b):
     res = cv.matchTemplate(image_a, image_b, cv.TM_CCOEFF_NORMED)
     return float(res[0][0])  # single similarity value
+
+
+def blackout_roi(image, coord_a, coord_b):
+    """
+    Blacks out a rectangular region of an image in-place.
+
+    Parameters:
+        image (np.ndarray): The image array (H x W x 3).
+        coord_a (tuple): (x1, y1) of one corner.
+        coord_b (tuple): (x2, y2) of the opposite corner.
+
+    Returns:
+        np.ndarray: The modified image (same object).
+    """
+
+    # Extract coordinates
+    x1, y1 = coord_a
+    x2, y2 = coord_b
+
+    # Normalize coordinates so (x1,y1) is top-left,
+    # (x2,y2) is bottom-right regardless of input order
+    x_min, x_max = sorted([x1, x2])
+    y_min, y_max = sorted([y1, y2])
+
+    # Clip to image boundaries to avoid errors
+    h, w = image.shape[:2]
+    x_min = max(0, min(x_min, w))
+    x_max = max(0, min(x_max, w))
+    y_min = max(0, min(y_min, h))
+    y_max = max(0, min(y_max, h))
+
+    # Blackout the region
+    image[y_min:y_max, x_min:x_max] = 0
+
+    return image
+
+
+def apply_map_mask(image):
+    # Only works on 1600x900 resolution
+    image = blackout_roi(image, (0, 550), (450, 750))
+    image = blackout_roi(image, (0, 750), (600, 900))
+    image = blackout_roi(image, (1367, 181), (1618, 430))
+    return image
+
+
+def get_coords_template_match(img_gray, template_name, threshold=0.75, nms_thresh=0.3):
+    # img_rgb = self.get_screenshot()
+    # assert img_rgb is not None, "Screenshot could not be captured."
+    # img_gray = cv.cvtColor(img_rgb, cv.COLOR_BGR2GRAY)
+
+    template_gray = get_gray_template_image(template_name)
+    assert template_gray is not None, "template file could not be read"
+    h, w = template_gray.shape
+
+    # Template matching
+    res = cv.matchTemplate(img_gray, template_gray, cv.TM_CCOEFF_NORMED)
+    loc = np.where(res >= threshold)
+
+    # Build boxes for NMS
+    boxes = []
+    scores = []
+    for pt in zip(*loc[::-1]):  # (x, y)
+        boxes.append([pt[0], pt[1], w, h])  # x, y, width, height
+        scores.append(res[pt[1], pt[0]])
+
+    if not boxes:
+        return [], img_gray
+
+    boxes = np.array(boxes).tolist()
+    scores = np.array(scores).tolist()
+
+    # OpenCV NMS
+    indices = cv.dnn.NMSBoxes(
+        boxes, scores, score_threshold=threshold, nms_threshold=nms_thresh)
+
+    coords = []
+    for i in indices:
+        i = i[0] if isinstance(i, (list, np.ndarray)) else i
+        x, y, w_box, h_box = boxes[i]
+        cx = x + w_box // 2
+        cy = y + h_box // 2
+        coords.append((cx, cy))
+
+    return coords, img_gray

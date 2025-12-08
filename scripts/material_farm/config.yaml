@@ -3,10 +3,10 @@ log_level: "INFO"
 material_match_threshold: 0.65
 waypoint_match_threshold: 0.6
 visited_match_threshold: 0.95
-top_n_closest: 5
+top_n_closest: 3
 seconds_for_each_material: 60
 seconds_till_revisit: 300
-seconds_for_loading_screen: 10
+seconds_for_loading_screen: 5
 key_stop_script: 'F3'
 key_escape: "{ESC}"
 key_wayfinder: 'v'

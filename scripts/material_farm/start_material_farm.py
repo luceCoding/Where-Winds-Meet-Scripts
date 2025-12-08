@@ -1,5 +1,4 @@
 import os
-import yaml
 import keyboard
 import random
 import time
@@ -8,6 +7,7 @@ from wwm.window import Window
 from image import image
 from collections import deque
 from datetime import datetime, timedelta
+from wwm_config import wwm_config
 
 
 def main():
@@ -18,41 +18,23 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_path = os.path.join(script_dir, "config.yaml")
 
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
+    config = wwm_config.load_config(path=config_path)
+    sleep_timer = 2
 
-    log_level_str = config.get("log_level", "INFO").upper()
-    log_level = getattr(logging, log_level_str, logging.INFO)
-
+    # ------------------------------
     # Configure logger
+    # ------------------------------
     logging.basicConfig(
-        level=log_level,
+        level=config.log_level,
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
     logger = logging.getLogger(__name__)
 
-    app_title = config["app_title"]
-    material_match_threshold = config["material_match_threshold"]
-    waypoint_match_threshold = config["waypoint_match_threshold"]
-    visited_match_threshold = config["visited_match_threshold"]
-    top_n_closest = config["top_n_closest"]
-    seconds_for_each_material = config["seconds_for_each_material"]
-    seconds_till_revisit = config["seconds_till_revisit"]
-    seconds_for_loading_screen = config["seconds_for_loading_screen"]
-    key_stop_script = config["key_stop_script"]
-    key_escape = config["key_escape"]
-    key_wayfinder = config["key_wayfinder"]
-    key_confirm = config["key_confirm"]
-    key_map = config["key_map"]
-    key_character_pickup = config["key_character_pickup"]
-    key_spirited_courser_pickup = config["key_spirited_courser_pickup"]
-    sleep_timer = 2
-
     # ------------------------------
     # Connect to app
     # ------------------------------
-    window = Window(window_title=app_title)
+    window = Window(window_title=config.app_title)
 
     # ------------------------------
     # Stop flag + hotkey
@@ -63,13 +45,13 @@ def main():
         stop_flag["stop"] = True
         logger.info("Stop key pressed — stopping program...")
 
-    keyboard.add_hotkey(key_stop_script, stop)
+    keyboard.add_hotkey(config.key_stop_script, stop)
 
     # ------------------------------
     # Reset for pre-session state
     # ------------------------------
     for _ in range(4):
-        window.send_keystrokes(key_escape)
+        window.send_keystrokes(config.key_escape)
 
     visited_queue = deque()
     unreachable_materials = deque(maxlen=100)
@@ -77,15 +59,15 @@ def main():
     while not stop_flag["stop"]:
 
         # Close "Select a new destination?" dialog
-        window.send_keystrokes(key_escape)
+        window.send_keystrokes(config.key_escape)
         time.sleep(sleep_timer+1)
 
         # Open map
-        window.send_keystrokes(key_map)
+        window.send_keystrokes(config.key_map)
         time.sleep(sleep_timer)
 
         now = datetime.now()
-        cutoff = now - timedelta(seconds=seconds_till_revisit)
+        cutoff = now - timedelta(seconds=config.seconds_till_revisit)
         # Remove any past visited areas older then X seconds
         while visited_queue and visited_queue[0][0] < cutoff:
             visited_queue.popleft()
@@ -99,7 +81,7 @@ def main():
             found_coords, last_img_gray = image.get_coords_template_match(
                 screenshot,
                 png,
-                threshold=material_match_threshold,
+                threshold=config.material_match_threshold,
             )
             coords += found_coords
 
@@ -115,14 +97,14 @@ def main():
         crop_64 = None
         path_found = False
         for idx, _ in enumerate(coords_sorted):
-            coord = random.choice(coords_sorted[idx:idx+top_n_closest])
+            coord = random.choice(coords_sorted[idx:idx+config.top_n_closest])
             x, y = coord
             crop_64 = image.get_crop_around(last_img_gray, x, y, size=64)
             has_similar = any(image.get_image_similarity(
-                img[1], crop_64) >= visited_match_threshold for img in visited_queue)
+                img[1], crop_64) >= config.visited_match_threshold for img in visited_queue)
             if not has_similar:
                 is_unreachable = any(image.get_image_similarity(
-                    img, crop_64) >= visited_match_threshold for img in unreachable_materials)
+                    img, crop_64) >= config.visited_match_threshold for img in unreachable_materials)
                 if is_unreachable:
                     logger.debug("Image is unreachable.")
                     continue
@@ -130,7 +112,7 @@ def main():
                 window.send_left_mouse_click(int(x), int(y))
                 time.sleep(sleep_timer)
                 # Auto Path to destination
-                window.send_keystrokes(key_wayfinder)
+                window.send_keystrokes(config.key_wayfinder)
                 time.sleep(sleep_timer)
                 path_found = True
                 break
@@ -147,7 +129,7 @@ def main():
             found_coords, _ = image.get_coords_template_match(
                 screenshot,
                 png,
-                threshold=waypoint_match_threshold,
+                threshold=config.waypoint_match_threshold,
             )
             waypoint_coords += found_coords
 
@@ -157,25 +139,39 @@ def main():
             x, y = waypoint_coords
             window.send_left_mouse_click(int(x), int(y))
             time.sleep(sleep_timer)
-            window.send_keystrokes(key_confirm)
-            time.sleep(seconds_for_loading_screen)  # Wait for loading screen
+            window.send_keystrokes(config.key_confirm)
+            # Wait for loading screen
+            time.sleep(config.seconds_for_loading_screen)
 
         else:  # Continue as normal
-            has_black_letterbox, has_white_letterbox = True, False
-            time_till_expired = datetime.now() + timedelta(seconds=seconds_for_each_material)
-            while (has_black_letterbox is True or has_white_letterbox is True):
+            time_till_expired = datetime.now() + timedelta(seconds=config.seconds_for_each_material)
+
+            has_black_letterbox = True
+            has_white_letterbox = False
+
+            while has_black_letterbox or has_white_letterbox:
+
                 if datetime.now() >= time_till_expired:
-                    logger.info("Timed out, attempt to reset.")
-                    window.send_keystrokes(key_escape)
+                    logger.info("Timed out, attempting reset.")
+                    window.send_keystrokes(config.key_escape)
                     break
+
                 time.sleep(sleep_timer)
+
                 screenshot = window.get_screenshot()
-                has_black_letterbox = image.has_bottom_black_letterbox(
-                    screenshot)
-                has_white_letterbox = image.has_bottom_white_letterbox(
-                    screenshot)
-                logger.debug("Black letterbox: %s | White letterbox: %s",
-                             has_black_letterbox, has_white_letterbox)
+
+                has_black_letterbox = image.has_bottom_black_letterbox(screenshot)
+
+                if not has_black_letterbox:
+                    has_white_letterbox = image.has_bottom_white_letterbox(screenshot)
+                else:
+                    has_white_letterbox = False
+
+                logger.debug(
+                    "Black letterbox: %s | White letterbox: %s",
+                    has_black_letterbox,
+                    has_white_letterbox,
+                )
 
         screenshot = window.get_screenshot()
         has_gray_letterbox = image.has_center_gray_band(screenshot)
@@ -184,10 +180,10 @@ def main():
             if crop_64 is not None:
                 unreachable_materials.append(crop_64)
                 logger.debug("Added unreachable.")
-            window.send_keystrokes(key_escape)
+            window.send_keystrokes(config.key_escape)
             time.sleep(sleep_timer)
-            window.send_keystrokes(key_spirited_courser_pickup)
-            window.send_keystrokes(key_map)
+            window.send_keystrokes(config.key_spirited_courser_pickup)
+            window.send_keystrokes(config.key_map)
             time.sleep(sleep_timer)
 
             waypoint_coords = []
@@ -197,7 +193,7 @@ def main():
                 found_coords, _ = image.get_coords_template_match(
                     screenshot,
                     png,
-                    threshold=waypoint_match_threshold,
+                    threshold=config.waypoint_match_threshold,
                 )
                 waypoint_coords += found_coords
 
@@ -207,18 +203,18 @@ def main():
                 x, y = waypoint_coords
                 window.send_left_mouse_click(int(x), int(y))
                 time.sleep(sleep_timer)
-                window.send_keystrokes(key_confirm)
+                window.send_keystrokes(config.key_confirm)
                 # Wait for loading screen
-                time.sleep(seconds_for_loading_screen)
+                time.sleep(config.seconds_for_loading_screen)
 
         time.sleep(0.5)
-        window.send_keystrokes(key_spirited_courser_pickup)
-        window.send_keystrokes(key_character_pickup)
+        window.send_keystrokes(config.key_spirited_courser_pickup)
+        window.send_keystrokes(config.key_character_pickup)
         time.sleep(0.5)
-        window.send_keystrokes(key_character_pickup)
+        window.send_keystrokes(config.key_character_pickup)
         time.sleep(0.5)
-        window.send_keystrokes(key_character_pickup)
-        window.send_keystrokes(key_spirited_courser_pickup)
+        window.send_keystrokes(config.key_character_pickup)
+        window.send_keystrokes(config.key_spirited_courser_pickup)
         if crop_64 is not None:
             visited_queue.append((datetime.now(), crop_64))
             logger.info("Destination reached.")

@@ -1,6 +1,9 @@
+import logging
 from importlib import resources
 import numpy as np
 import cv2 as cv
+
+logger = logging.getLogger(__name__)
 
 
 def get_gray_template_image(template_name):
@@ -65,9 +68,8 @@ def has_center_gray_band(image, n_rows=100, min_gray=45, max_gray=50, threshold=
 
     fraction_gray = gray_pixels / total_pixels
 
-    # Optional: print for debugging
-    print(
-        f"Gray fraction: {fraction_gray:.2f}, mean intensity: {gray_band.mean():.2f}")
+    logger.debug(
+        f"Gray fraction: {fraction_gray:.2f} | Mean intensity: {gray_band.mean():.2f}")
 
     return fraction_gray >= threshold
 

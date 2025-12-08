@@ -36,13 +36,16 @@ def main():
     material_match_threshold = config["material_match_threshold"]
     waypoint_match_threshold = config["waypoint_match_threshold"]
     top_n_closest = config["top_n_closest"]
+    seconds_for_each_material = config["seconds_for_each_material"]
     seconds_till_revisit = config["seconds_till_revisit"]
     seconds_for_loading_screen = config["seconds_for_loading_screen"]
     key_stop_script = config["key_stop_script"]
+    key_escape = config["key_escape"]
     key_wayfinder = config["key_wayfinder"]
     key_confirm = config["key_confirm"]
     key_map = config["key_map"]
-    key_pickup_material = config["key_pickup_material"]
+    key_character_pickup = config["key_character_pickup"]
+    key_spirited_courser_pickup = config["key_spirited_courser_pickup"]
     sleep_timer = 2
 
     # ------------------------------
@@ -62,11 +65,12 @@ def main():
     keyboard.add_hotkey(key_stop_script, stop)
 
     visited_queue = deque()
+    unreachable_materials = deque(maxlen=100)
 
     while not stop_flag["stop"]:
 
         # Close "Select a new destination?" dialog
-        window.send_keystrokes("{ESC}")
+        window.send_keystrokes(key_escape)
         time.sleep(sleep_timer+1)
 
         # Open map
@@ -106,6 +110,11 @@ def main():
             has_similar = any(image.get_image_similarity(
                 img[1], crop_64) >= 0.9 for img in visited_queue)
             if not has_similar:
+                is_unreachable = any(image.get_image_similarity(
+                    img, crop_64) >= 0.9 for img in unreachable_materials)
+                if is_unreachable:
+                    logger.debug("Image is unreachable.")
+                    continue
                 logger.debug("Image is not similar.")
                 window.send_left_mouse_click(int(x), int(y))
                 time.sleep(sleep_timer)
@@ -136,7 +145,12 @@ def main():
 
         else:  # Continue as normal
             has_black_letterbox, has_white_letterbox = True, False
-            while has_black_letterbox is True or has_white_letterbox is True:
+            time_till_expired = datetime.now() + timedelta(seconds=seconds_for_each_material)
+            while (has_black_letterbox is True or has_white_letterbox is True):
+                if datetime.now() >= time_till_expired:
+                    logger.info("Timed out, attempt to reset.")
+                    window.send_keystrokes(key_escape)
+                    break
                 time.sleep(sleep_timer)
                 screenshot = window.get_screenshot()
                 has_black_letterbox = image.has_bottom_black_letterbox(
@@ -150,8 +164,15 @@ def main():
         has_gray_letterbox = image.has_center_gray_band(screenshot)
         if has_gray_letterbox:
             logger.debug("Gray letterbox detected.")
-            window.send_keystrokes(key_confirm)
+            if crop_64 is not None:
+                unreachable_materials.append(crop_64)
+                logger.debug("Added unreachable.")
+            window.send_keystrokes(key_escape)
             time.sleep(sleep_timer)
+            window.send_keystrokes(key_spirited_courser_pickup)
+            window.send_keystrokes(key_map)
+            time.sleep(sleep_timer)
+
             waypoint_coords = []
             for png in image.list_png_files('waypoints'):
                 found_coords, _ = window.get_coords_template_match(
@@ -171,13 +192,16 @@ def main():
                 time.sleep(seconds_for_loading_screen)
 
         time.sleep(0.5)
-        window.send_keystrokes(key_pickup_material)
+        window.send_keystrokes(key_spirited_courser_pickup)
+        window.send_keystrokes(key_character_pickup)
         time.sleep(0.5)
-        window.send_keystrokes(key_pickup_material)
+        window.send_keystrokes(key_character_pickup)
         time.sleep(0.5)
-        window.send_keystrokes(key_pickup_material)
+        window.send_keystrokes(key_character_pickup)
+        window.send_keystrokes(key_spirited_courser_pickup)
         if crop_64 is not None:
             visited_queue.append((datetime.now(), crop_64))
+            logger.info("Destination reached.")
 
 
 if __name__ == "__main__":

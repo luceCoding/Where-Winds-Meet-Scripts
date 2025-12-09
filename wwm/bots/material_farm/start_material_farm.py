@@ -1,17 +1,27 @@
-from constants import PUBLIC_KEY, SIGNATURE, EXPIRATION_DATE_UTC
 import os
 import keyboard
 import random
 import time
 import logging
 import win32clipboard
-from image import image
+from wwm.image import image
 from collections import deque
 from datetime import timedelta, datetime, timezone
-from wwm_config import wwm_config
-from wwm.cryptography import cryptography
+from wwm import wwm_config
+from wwm.cryptography import verify_id
 from wwm.window import Window
+from wwm.constants import PUBLIC_KEY, SIGNATURE, EXPIRATION_DATE_UTC
 import requests
+import sys
+import re
+
+
+def get_app_dir():
+    # Running as PyInstaller bundle?
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)  # Folder with the .exe
+    # Running from source
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
@@ -19,17 +29,17 @@ def main():
     # ------------------------------
     # Load config
     # ------------------------------
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, "config.yaml")
+    app_dir = get_app_dir()
+    config_path = os.path.join(app_dir, "config.yaml")
 
     config = wwm_config.load_config(path=config_path)
-    sleep_timer = 2
 
     # ------------------------------
     # Configure logger
     # ------------------------------
+    IS_EXE = getattr(sys, "frozen", False)
     logging.basicConfig(
-        level=config.log_level,
+        level=logging.INFO if IS_EXE else logging.DEBUG,
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
@@ -63,7 +73,7 @@ def main():
     def get_character_id():
         time.sleep(1)
         window.send_keystrokes(config.key_escape)
-        time.sleep(sleep_timer)
+        time.sleep(config.seconds_between_actions)
         waypoint_coords = []
         screenshot = window.get_gray_screenshot()
         for png in image.list_png_files('char'):
@@ -79,7 +89,7 @@ def main():
             win32clipboard.OpenClipboard()
             character_id = win32clipboard.GetClipboardData()
             win32clipboard.CloseClipboard()
-            print(f"Character ID: {character_id}")
+            logger.info(f"Character ID: {character_id}")
             return character_id
         return -1
 
@@ -87,11 +97,51 @@ def main():
     # Lifetime check
     # ------------------------------
 
+    def parse_timeapi_datetime(dt_str: str) -> datetime:
+        """
+        Parse timeapi.io 'dateTime' string to a datetime object.
+        Truncate microseconds to 6 digits for Python compatibility.
+        """
+        # Truncate fractional seconds to max 6 digits
+        dt_str = re.sub(r"(\.\d{6})\d+", r"\1", dt_str)
+        dt = datetime.fromisoformat(dt_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+
     def get_current_unix_time():
-        """Get current UTC Unix timestamp from worldtimeapi.org"""
-        resp = requests.get("https://worldtimeapi.org/api/timezone/Etc/UTC")
-        data = resp.json()
-        return data["unixtime"]
+        """
+        Get current UTC Unix timestamp using multiple fallback APIs.
+        Returns:
+            int: current UTC Unix timestamp
+        Raises:
+            RuntimeError: if all APIs fail
+        """
+        apis = [
+            "https://worldtimeapi.org/api/timezone/Etc/UTC",
+            "https://timeapi.io/api/Time/current/zone?timeZone=UTC",
+        ]
+
+        for api in apis:
+            try:
+                resp = requests.get(api, timeout=5)
+                resp.raise_for_status()
+                data = resp.json()
+
+                # worldtimeapi.org
+                if "unixtime" in data:
+                    return int(data["unixtime"])
+
+                # timeapi.io
+                if "dateTime" in data:
+                    dt = parse_timeapi_datetime(data["dateTime"])
+                    return int(dt.timestamp())
+
+            except Exception as e:
+                # logger.debug(f"{e}")
+                continue
+
+        return None
 
     def has_expired_utc(target_dt: datetime):
         """
@@ -102,7 +152,11 @@ def main():
             target_dt = target_dt.replace(tzinfo=timezone.utc)
 
         target_ts = int(target_dt.timestamp())
-        current_ts = get_current_unix_time()  # your existing function
+        current_ts = get_current_unix_time()
+
+        # Treat as expired if current time is unavailable
+        if current_ts is None:
+            return True
 
         return current_ts > target_ts
 
@@ -117,9 +171,9 @@ def main():
         if character_id == -1:
             character_id = get_character_id()
         after_seq_number = win32clipboard.GetClipboardSequenceNumber()
-        is_character_id_match = cryptography.verify_id(character_id,
-                                                       public_key_pem=PUBLIC_KEY,
-                                                       signature=SIGNATURE)
+        is_character_id_match = verify_id(character_id,
+                                          public_key_pem=PUBLIC_KEY,
+                                          signature=SIGNATURE)
         is_clipboard_untampered = (before_seq_number+5 == after_seq_number)
         return is_clipboard_untampered and is_character_id_match
 
@@ -127,7 +181,7 @@ def main():
         logger.info("License has expired.")
         return
     if character_id_match() is False:
-        logger.info("License does not match this account.")
+        logger.info("License rejected.")
         return
     logger.info("License accepted.")
 
@@ -138,11 +192,11 @@ def main():
 
         # Close "Select a new destination?" dialog
         window.send_keystrokes(config.key_escape)
-        time.sleep(sleep_timer+1)
+        time.sleep(config.seconds_between_actions+1)
 
         # Open map
         window.send_keystrokes(config.key_map)
-        time.sleep(sleep_timer)
+        time.sleep(config.seconds_between_actions)
 
         now = datetime.now()
         cutoff = now - timedelta(seconds=config.seconds_till_revisit)
@@ -188,10 +242,11 @@ def main():
                     continue
                 logger.debug("Image is not similar.")
                 window.send_left_mouse_click(int(x), int(y))
-                time.sleep(sleep_timer)
+                time.sleep(config.seconds_between_actions)
                 # Auto Path to destination
                 window.send_keystrokes(config.key_wayfinder)
-                time.sleep(sleep_timer)
+                logger.info("Path started...")
+                time.sleep(config.seconds_between_actions)
                 path_found = True
                 break
             else:
@@ -216,7 +271,7 @@ def main():
             waypoint_coords = random.choice(waypoint_coords)
             x, y = waypoint_coords
             window.send_left_mouse_click(int(x), int(y))
-            time.sleep(sleep_timer)
+            time.sleep(config.seconds_between_actions)
             window.send_keystrokes(config.key_confirm)
             # Wait for loading screen
             time.sleep(config.seconds_for_loading_screen)
@@ -234,7 +289,7 @@ def main():
                     window.send_keystrokes(config.key_escape)
                     break
 
-                time.sleep(sleep_timer)
+                time.sleep(config.seconds_between_actions)
 
                 screenshot = window.get_screenshot()
 
@@ -259,12 +314,12 @@ def main():
             logger.debug("Gray letterbox detected.")
             if crop_64 is not None:
                 unreachable_materials.append(crop_64)
-                logger.debug("Added unreachable.")
+                logger.info("Destination unreachable.")
             window.send_keystrokes(config.key_escape)
-            time.sleep(sleep_timer)
+            time.sleep(config.seconds_between_actions)
             window.send_keystrokes(config.key_spirited_courser_pickup)
             window.send_keystrokes(config.key_map)
-            time.sleep(sleep_timer)
+            time.sleep(config.seconds_between_actions)
 
             waypoint_coords = []
             screenshot = window.get_gray_screenshot()
@@ -282,7 +337,7 @@ def main():
                 waypoint_coords = random.choice(waypoint_coords)
                 x, y = waypoint_coords
                 window.send_left_mouse_click(int(x), int(y))
-                time.sleep(sleep_timer)
+                time.sleep(config.seconds_between_actions)
                 window.send_keystrokes(config.key_confirm)
                 # Wait for loading screen
                 time.sleep(config.seconds_for_loading_screen)

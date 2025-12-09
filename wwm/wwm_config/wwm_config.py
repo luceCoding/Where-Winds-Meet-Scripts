@@ -13,6 +13,7 @@ class MaterialFarmConfig:
 
     top_n_closest: int
 
+    seconds_between_actions: int
     seconds_for_each_material: int
     seconds_till_revisit: int
     seconds_for_loading_screen: int
@@ -25,16 +26,11 @@ class MaterialFarmConfig:
     key_character_pickup: str
     key_spirited_courser_pickup: str
 
-    log_level: int
-
 
 def load_config(path="config.yaml") -> MaterialFarmConfig:
 
     with open(path, "r") as f:
         cfg = yaml.safe_load(f)
-
-    log_level = getattr(logging, cfg.get(
-        "log_level", "INFO").upper(), logging.INFO)
 
     return MaterialFarmConfig(
         app_title=cfg.get("app_title", "Where Winds Meet"),
@@ -42,6 +38,7 @@ def load_config(path="config.yaml") -> MaterialFarmConfig:
         waypoint_match_threshold=cfg.get("waypoint_match_threshold", 0.6),
         visited_match_threshold=cfg.get("visited_match_threshold", 0.95),
         top_n_closest=cfg.get("top_n_closest", 3),
+        seconds_between_actions=cfg.get("seconds_between_actions", 2),
         seconds_for_each_material=cfg.get("seconds_for_each_material", 60),
         seconds_till_revisit=cfg.get("seconds_till_revisit", 300),
         seconds_for_loading_screen=cfg.get("seconds_for_loading_screen", 10),
@@ -53,5 +50,4 @@ def load_config(path="config.yaml") -> MaterialFarmConfig:
         key_character_pickup=cfg.get("key_character_pickup", "f"),
         key_spirited_courser_pickup=cfg.get(
             "key_spirited_courser_pickup", "z"),
-        log_level=log_level
     )

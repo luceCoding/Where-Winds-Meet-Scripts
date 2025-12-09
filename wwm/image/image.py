@@ -1,39 +1,52 @@
-import logging
-from importlib import resources
+import os
+import sys
 import numpy as np
 import cv2 as cv
+import logging
 
 logger = logging.getLogger(__name__)
 
 
+def get_data_path(*paths):
+    """
+    Returns the absolute path to a data file or folder.
+    Works in development and PyArmor builds (onefile).
+    """
+    base = os.path.dirname(sys.argv[0])  # path of the exe or script
+    return os.path.join(base, *paths)
+
+
 def get_gray_template_image(template_name):
-    search_paths = [
-        "wwm.image.templates.materials",
-        "wwm.image.templates.waypoints",
-        "wwm.image.templates.char",
+    """
+    Search for a template in all template folders and load as grayscale image.
+    """
+    search_folders = [
+        ["wwm", "image", "templates", "materials"],
+        ["wwm", "image", "templates", "waypoints"],
+        ["wwm", "image", "templates", "char"],
     ]
 
-    for pkg in search_paths:
-        if resources.files(pkg).joinpath(template_name).is_file():
-            with resources.open_binary(pkg, template_name) as template_file:
-                file_bytes = np.frombuffer(template_file.read(), np.uint8)
-                return cv.imdecode(file_bytes, cv.IMREAD_GRAYSCALE)
+    for folder in search_folders:
+        template_path = get_data_path(*folder, template_name)
+        if os.path.isfile(template_path):
+            img_bytes = open(template_path, "rb").read()
+            img_array = np.frombuffer(img_bytes, np.uint8)
+            return cv.imdecode(img_array, cv.IMREAD_GRAYSCALE)
 
     raise FileNotFoundError(
-        f"Template '{template_name}' not found in materials or waypoints."
+        f"Template '{template_name}' not found in materials, waypoints, or char folders."
     )
 
 
 def list_png_files(folder_name):
     """
-    folder_name: e.g. "materials" or "waypoints"
+    List all PNG files in a template subfolder.
+    folder_name: "materials", "waypoints", or "char"
     """
-    package = resources.files(f"wwm.image.templates.{folder_name}")
-    return [
-        entry.name
-        for entry in package.iterdir()
-        if entry.suffix.lower() == ".png"
-    ]
+    folder_path = get_data_path("wwm", "image", "templates", folder_name)
+    if not os.path.isdir(folder_path):
+        raise FileNotFoundError(f"Folder '{folder_path}' does not exist.")
+    return [f for f in os.listdir(folder_path) if f.lower().endswith(".png")]
 
 
 def has_bottom_black_letterbox(image, n_rows=75, min_black=1):

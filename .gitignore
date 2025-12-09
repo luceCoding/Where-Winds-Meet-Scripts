@@ -65,3 +65,4 @@ ruff_cache/
 *.pem
 *.bin
 constants.py
+.pyarmor/

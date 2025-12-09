@@ -10,6 +10,7 @@ def get_gray_template_image(template_name):
     search_paths = [
         "wwm.image.templates.materials",
         "wwm.image.templates.waypoints",
+        "wwm.image.templates.char",
     ]
 
     for pkg in search_paths:

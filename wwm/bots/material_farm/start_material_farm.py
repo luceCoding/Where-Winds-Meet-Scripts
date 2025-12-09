@@ -1,13 +1,17 @@
+from constants import PUBLIC_KEY, SIGNATURE, EXPIRATION_DATE_UTC
 import os
 import keyboard
 import random
 import time
 import logging
-from wwm.window import Window
+import win32clipboard
 from image import image
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import timedelta, datetime, timezone
 from wwm_config import wwm_config
+from wwm.cryptography import cryptography
+from wwm.window import Window
+import requests
 
 
 def main():
@@ -52,6 +56,80 @@ def main():
     # ------------------------------
     for _ in range(4):
         window.send_keystrokes(config.key_escape)
+
+    # ------------------------------
+    # Check character id
+    # ------------------------------
+    def get_character_id():
+        time.sleep(1)
+        window.send_keystrokes(config.key_escape)
+        time.sleep(sleep_timer)
+        waypoint_coords = []
+        screenshot = window.get_gray_screenshot()
+        for png in image.list_png_files('char'):
+            found_coords, _ = image.get_coords_template_match(
+                screenshot,
+                png,
+                threshold=0.9,
+            )
+            waypoint_coords += found_coords
+        if len(waypoint_coords) == 1:
+            x, y = waypoint_coords[0]
+            window.send_left_mouse_click(int(x), int(y))
+            win32clipboard.OpenClipboard()
+            character_id = win32clipboard.GetClipboardData()
+            win32clipboard.CloseClipboard()
+            print(f"Character ID: {character_id}")
+            return character_id
+        return -1
+
+    # ------------------------------
+    # Lifetime check
+    # ------------------------------
+
+    def get_current_unix_time():
+        """Get current UTC Unix timestamp from worldtimeapi.org"""
+        resp = requests.get("https://worldtimeapi.org/api/timezone/Etc/UTC")
+        data = resp.json()
+        return data["unixtime"]
+
+    def has_expired_utc(target_dt: datetime):
+        """
+        Returns True if the given UTC datetime has expired.
+        """
+        # Ensure the datetime is timezone-aware
+        if target_dt.tzinfo is None:
+            target_dt = target_dt.replace(tzinfo=timezone.utc)
+
+        target_ts = int(target_dt.timestamp())
+        current_ts = get_current_unix_time()  # your existing function
+
+        return current_ts > target_ts
+
+    # ------------------------------
+    # License Check
+    # ------------------------------
+
+    def character_id_match():
+
+        before_seq_number = win32clipboard.GetClipboardSequenceNumber()
+        character_id = get_character_id()
+        if character_id == -1:
+            character_id = get_character_id()
+        after_seq_number = win32clipboard.GetClipboardSequenceNumber()
+        is_character_id_match = cryptography.verify_id(character_id,
+                                                       public_key_pem=PUBLIC_KEY,
+                                                       signature=SIGNATURE)
+        is_clipboard_untampered = (before_seq_number+5 == after_seq_number)
+        return is_clipboard_untampered and is_character_id_match
+
+    if has_expired_utc(EXPIRATION_DATE_UTC) is True:
+        logger.info("License has expired.")
+        return
+    if character_id_match() is False:
+        logger.info("License does not match this account.")
+        return
+    logger.info("License accepted.")
 
     visited_queue = deque()
     unreachable_materials = deque(maxlen=100)
@@ -160,10 +238,12 @@ def main():
 
                 screenshot = window.get_screenshot()
 
-                has_black_letterbox = image.has_bottom_black_letterbox(screenshot)
+                has_black_letterbox = image.has_bottom_black_letterbox(
+                    screenshot)
 
                 if not has_black_letterbox:
-                    has_white_letterbox = image.has_bottom_white_letterbox(screenshot)
+                    has_white_letterbox = image.has_bottom_white_letterbox(
+                        screenshot)
                 else:
                     has_white_letterbox = False
 

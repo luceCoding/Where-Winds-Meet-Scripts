@@ -60,3 +60,8 @@ ruff_cache/
 
 # --- Images ---
 *.png
+
+# --- Cryptography ---
+*.pem
+*.bin
+constants.py

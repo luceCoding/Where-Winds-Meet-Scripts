@@ -159,9 +159,9 @@ def blackout_roi(image, coord_a, coord_b):
 
 def apply_map_mask(image):
     # Only works on 1600x900 resolution
-    image = blackout_roi(image, (0, 550), (450, 750))
-    image = blackout_roi(image, (0, 750), (600, 900))
-    image = blackout_roi(image, (1367, 181), (1618, 430))
+    image = blackout_roi(image, (0, 540), (435, 700))
+    image = blackout_roi(image, (0, 728), (613, 855))
+    image = blackout_roi(image, (1358, 145), (1600, 470))
     return image
 
 

@@ -29,6 +29,12 @@ def main():
     window = Window(window_title=config.app_title)
 
     # ------------------------------
+    # Tamper Check
+    # ------------------------------
+    if not auth.has_clipboard_been_tampered():
+        return
+
+    # ------------------------------
     # License Check
     # ------------------------------
     if not auth.is_license_good(window, config):
@@ -48,16 +54,14 @@ def main():
     # ------------------------------
     # Reset for pre-session state
     # ------------------------------
-    logger.debug("Preparing game...")
-    for _ in range(4):
-        window.send_keystrokes(config.key_escape)
+    logger.debug("Resetting map...")
     window.send_keystrokes(config.key_map)
     time.sleep(config.seconds_between_actions)
     x, y = window.get_center()
     for _ in range(20):
         window.send_mouse_scroll_wheel(x, y, 1)
     window.send_keystrokes(config.key_escape)
-    logger.debug("Preparation complete.")
+    logger.debug("Resetting complete.")
 
     visited_queue = deque()
     unreachable_materials = deque(maxlen=100)
@@ -66,6 +70,8 @@ def main():
     while not stop_flag["stop"]:
 
         if n_runs % 100 == 0:
+            if not auth.has_clipboard_been_tampered():
+                break
             if not auth.is_license_good(window, config):
                 break
 

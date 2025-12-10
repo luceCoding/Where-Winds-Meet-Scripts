@@ -9,6 +9,7 @@ from wwm.window import Window
 from wwm import wwm_config
 from wwm.cryptography import verify_id
 from wwm.constants import PUBLIC_KEY, SIGNATURE, EXPIRATION_DATE_UTC
+import random
 
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,38 @@ def has_expired_utc(target_dt: datetime):
 
     return current_ts > target_ts
 
+def has_clipboard_been_tampered():
+    # Generate known random text
+    rdm_10_digit_num = str(random.randint(10**9, 10**10 - 1))
+
+    # 1. Read sequence before touching clipboard
+    before_seq = win32clipboard.GetClipboardSequenceNumber()
+
+    # 2. Write our known value
+    win32clipboard.OpenClipboard()
+    win32clipboard.EmptyClipboard()
+    win32clipboard.SetClipboardText(rdm_10_digit_num)
+    win32clipboard.CloseClipboard()
+
+    # EmptyClipboard (+1), SetClipboardText (+1)
+    expected_after_seq = before_seq + 2
+
+    time.sleep(0.05)  # small delay
+
+    # 3. Read clipboard and read new sequence
+    win32clipboard.OpenClipboard()
+    try:
+        after_text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+    finally:
+        win32clipboard.CloseClipboard()
+
+    after_seq = win32clipboard.GetClipboardSequenceNumber()
+
+    # 4. Validation
+    content_ok = after_text == rdm_10_digit_num
+    sequence_ok = after_seq == expected_after_seq
+
+    return not(content_ok and sequence_ok)
 
 def get_character_id(window: Window, config: wwm_config):
 

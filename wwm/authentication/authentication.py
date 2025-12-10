@@ -54,9 +54,9 @@ def get_current_unix_time():
                 return int(dt.timestamp())
 
         except Exception as e:
-            # logger.debug(f"{e}")
+            logger.debug(f"{e}")
             continue
-
+    logger.debug(f"Could not contact server.")
     return None
 
 
@@ -98,7 +98,7 @@ def get_character_id(window, config):
         win32clipboard.OpenClipboard()
         character_id = win32clipboard.GetClipboardData()
         win32clipboard.CloseClipboard()
-        logger.info(f"Character ID: {character_id}")
+        logger.debug(f"Character ID: {character_id}")
         return character_id
     return -1
 
@@ -120,10 +120,10 @@ def is_character_id_match(window, config):
 def is_license_good(window, config):
 
     if has_expired_utc(EXPIRATION_DATE_UTC) is True:
-        logger.info("License has expired.")
+        logger.debug("License has expired.")
         return False
     if is_character_id_match(window, config) is False:
-        logger.info("License rejected.")
+        logger.debug("License rejected.")
         return False
-    logger.info("License accepted.")
+    logger.debug("License accepted.")
     return True

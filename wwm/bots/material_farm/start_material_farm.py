@@ -23,28 +23,15 @@ def get_app_dir():
 def main():
 
     # ------------------------------
-    # Load config
-    # ------------------------------
-    app_dir = get_app_dir()
-    config_path = os.path.join(app_dir, "config.yaml")
-
-    config = wwm_config.load_config(path=config_path)
-
-    # ------------------------------
-    # Configure logger
-    # ------------------------------
-    IS_EXE = getattr(sys, "frozen", False)
-    logging.basicConfig(
-        level=logging.INFO if IS_EXE else logging.DEBUG,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    logger = logging.getLogger(__name__)
-
-    # ------------------------------
     # Connect to app
     # ------------------------------
     window = Window(window_title=config.app_title)
+
+    # ------------------------------
+    # License Check
+    # ------------------------------
+    if not auth.is_license_good(window, config):
+        return
 
     # ------------------------------
     # Stop flag + hotkey
@@ -60,14 +47,16 @@ def main():
     # ------------------------------
     # Reset for pre-session state
     # ------------------------------
+    logger.debug("Preparing game...")
     for _ in range(4):
         window.send_keystrokes(config.key_escape)
-
-    # ------------------------------
-    # License Check
-    # ------------------------------
-    if not auth.is_license_good(window, config):
-        return
+    window.send_keystrokes(config.key_map)
+    time.sleep(config.seconds_between_actions)
+    x, y = window.get_center()
+    for _ in range(20):
+        window.send_mouse_scroll_wheel(x, y, 1)
+    window.send_keystrokes(config.key_escape)
+    logger.debug("Preparation complete.")
 
     visited_queue = deque()
     unreachable_materials = deque(maxlen=100)
@@ -240,4 +229,24 @@ def main():
 
 
 if __name__ == "__main__":
+    # ------------------------------
+    # Load config
+    # ------------------------------
+    app_dir = get_app_dir()
+    config_path = os.path.join(app_dir, "config.yaml")
+
+    config = wwm_config.load_config(path=config_path)
+
+    # ------------------------------
+    # Configure logger
+    # ------------------------------
+    IS_EXE = getattr(sys, "frozen", False)
+    logging.basicConfig(
+        level=logging.INFO if IS_EXE else logging.DEBUG,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    logger = logging.getLogger(__name__)
+    logger.info("Starting...")
     main()
+    logger.info("Ended.")

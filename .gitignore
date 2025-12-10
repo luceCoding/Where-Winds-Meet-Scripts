@@ -61,8 +61,11 @@ ruff_cache/
 # --- Images ---
 *.png
 
+# --- Pyarmor ---
+*.spec
+.pyarmor/
+
 # --- Cryptography ---
 *.pem
 *.bin
 constants.py
-.pyarmor/

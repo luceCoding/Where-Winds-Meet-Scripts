@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import yaml
-import logging
 
 
 @dataclass

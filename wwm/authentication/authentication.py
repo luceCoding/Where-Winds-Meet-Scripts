@@ -5,6 +5,8 @@ import logging
 import time
 from wwm.image import image
 from datetime import datetime, timezone
+from wwm.window import Window
+from wwm import wwm_config
 from wwm.cryptography import verify_id
 from wwm.constants import PUBLIC_KEY, SIGNATURE, EXPIRATION_DATE_UTC
 
@@ -78,8 +80,10 @@ def has_expired_utc(target_dt: datetime):
     return current_ts > target_ts
 
 
-def get_character_id(window, config):
+def get_character_id(window: Window, config: wwm_config):
 
+    for _ in range(4):
+        window.send_keystrokes(config.key_escape)
     time.sleep(1)
     window.send_keystrokes(config.key_escape)
     time.sleep(config.seconds_between_actions)
@@ -103,7 +107,7 @@ def get_character_id(window, config):
     return -1
 
 
-def is_character_id_match(window, config):
+def is_character_id_match(window: Window, config: wwm_config):
 
     before_seq_number = win32clipboard.GetClipboardSequenceNumber()
     character_id = get_character_id(window, config)
@@ -117,7 +121,7 @@ def is_character_id_match(window, config):
     return is_clipboard_untampered and is_character_id_match
 
 
-def is_license_good(window, config):
+def is_license_good(window: Window, config: wwm_config):
 
     if has_expired_utc(EXPIRATION_DATE_UTC) is True:
         logger.debug("License has expired.")

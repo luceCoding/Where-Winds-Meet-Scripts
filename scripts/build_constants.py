@@ -30,6 +30,11 @@ SIGNATURE_PATH = os.path.abspath(
     os.path.join(SCRIPT_DIR, "../build/signature.bin"))
 
 # -----------------------------
+# Build Version
+# -----------------------------
+build_version = datetime.now(timezone.utc).strftime("%Y.%m.%d.%H.%M")
+
+# -----------------------------
 # Generate expiration datetime
 # -----------------------------
 expiry_date = datetime.now(timezone.utc) + timedelta(days=days_until_expiry)
@@ -48,6 +53,7 @@ with open(SIGNATURE_PATH, "rb") as f:
 # -----------------------------
 constants_path = os.path.join(SRC_DIR, "constants.py")
 with open(constants_path, "w") as f:
+    f.write(f'BUILD_VERSION = \"{build_version}\"\n\n')
     f.write('from datetime import datetime, timezone\n\n')
     f.write(f'PUBLIC_KEY = """{public_key}"""\n\n')
     f.write(f'SIGNATURE = bytes.fromhex("{signature_bytes.hex()}")\n\n')

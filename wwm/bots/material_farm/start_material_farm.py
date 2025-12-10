@@ -10,6 +10,7 @@ from wwm import wwm_config
 from wwm.window import Window
 import sys
 from wwm import authentication as auth
+from wwm.constants import BUILD_VERSION
 
 
 def get_app_dir():
@@ -61,7 +62,12 @@ def main():
     visited_queue = deque()
     unreachable_materials = deque(maxlen=100)
 
+    n_runs = 1
     while not stop_flag["stop"]:
+
+        if n_runs % 100 == 0:
+            if not auth.is_license_good(window, config):
+                break
 
         # Close "Select a new destination?" dialog
         window.send_keystrokes(config.key_escape)
@@ -226,6 +232,7 @@ def main():
         if crop_64 is not None:
             visited_queue.append((datetime.now(), crop_64))
             logger.info("Destination reached.")
+        n_runs += 1
 
 
 if __name__ == "__main__":
@@ -247,6 +254,7 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S"
     )
     logger = logging.getLogger(__name__)
+    logger.info(f"Version: {BUILD_VERSION}")
     logger.info("Starting...")
     main()
     logger.info("Ended.")

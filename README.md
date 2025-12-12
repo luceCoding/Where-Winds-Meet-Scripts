@@ -11,7 +11,7 @@ These macros simulate keyboard presses and screenshots and do NOT inject or mani
 ## Requirements
 - Where Winds Meet game
 - Windows 10+
-- Python 3.10
+- Python 3.10+
 
 ## Setup (Do this first)
 1. Clone repo into a folder.

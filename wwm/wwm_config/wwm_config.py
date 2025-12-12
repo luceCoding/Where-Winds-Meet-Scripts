@@ -12,10 +12,10 @@ class MaterialFarmConfig:
 
     top_n_closest: int
 
-    seconds_between_actions: int
-    seconds_for_each_material: int
-    seconds_till_revisit: int
-    seconds_for_loading_screen: int
+    seconds_between_actions: float
+    seconds_for_each_material: float
+    seconds_till_revisit: float
+    seconds_for_loading_screen: float
 
     key_stop_script: str
     key_escape: str

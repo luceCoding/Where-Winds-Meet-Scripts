@@ -29,8 +29,8 @@ def copy_config(src_root, dst_root):
 
 
 copy_png_tree(
-    r"wwm",
-    r"dist\wwm"
+    r"assets",
+    r"dist\assets"
 )
 
 copy_config(

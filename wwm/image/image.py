@@ -9,10 +9,18 @@ logger = logging.getLogger(__name__)
 
 def get_data_path(*paths):
     """
-    Returns the absolute path to a data file or folder.
-    Works in development and PyArmor builds (onefile).
+    Return an absolute path to data, regardless of whether the program
+    is running from source or as a PyArmor onefile executable.
     """
-    base = os.path.dirname(sys.argv[0])  # path of the exe or script
+
+    if getattr(sys, "frozen", False):
+        # Running inside a PyArmor-packed executable
+        base = os.path.dirname(sys.argv[0])
+    else:
+        # Running from source → use project root (folder containing wwm/)
+        base = os.path.dirname(os.path.abspath(__file__))  # wwm/bots/material_farm/
+        base = os.path.abspath(os.path.join(base, "../../"))  # go up to project root
+
     return os.path.join(base, *paths)
 
 
@@ -21,9 +29,9 @@ def get_gray_template_image(template_name):
     Search for a template in all template folders and load as grayscale image.
     """
     search_folders = [
-        ["wwm", "image", "templates", "materials"],
-        ["wwm", "image", "templates", "waypoints"],
-        ["wwm", "image", "templates", "char"],
+        ["assets", "templates", "materials"],
+        ["assets", "templates", "waypoints"],
+        ["assets", "templates", "char"],
     ]
 
     for folder in search_folders:
@@ -43,7 +51,7 @@ def list_png_files(folder_name):
     List all PNG files in a template subfolder.
     folder_name: "materials", "waypoints", or "char"
     """
-    folder_path = get_data_path("wwm", "image", "templates", folder_name)
+    folder_path = get_data_path("assets", "templates", folder_name)
     if not os.path.isdir(folder_path):
         raise FileNotFoundError(f"Folder '{folder_path}' does not exist.")
     return [f for f in os.listdir(folder_path) if f.lower().endswith(".png")]

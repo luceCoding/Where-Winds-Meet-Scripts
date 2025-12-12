@@ -21,7 +21,28 @@ def get_app_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def main():
+def start_farm():
+
+    # ------------------------------
+    # Load config
+    # ------------------------------
+    app_dir = get_app_dir()
+    config_path = os.path.join(app_dir, "config.yaml")
+
+    config = wwm_config.load_config(path=config_path)
+
+    # ------------------------------
+    # Configure logger
+    # ------------------------------
+    IS_EXE = getattr(sys, "frozen", False)
+    logging.basicConfig(
+        level=logging.INFO if IS_EXE else logging.DEBUG,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    logger = logging.getLogger(__name__)
+    logger.info(f"Version: {BUILD_VERSION}")
+    logger.info("Starting...")
 
     # ------------------------------
     # Connect to app
@@ -240,27 +261,4 @@ def main():
             logger.info("Destination reached.")
         n_runs += 1
 
-
-if __name__ == "__main__":
-    # ------------------------------
-    # Load config
-    # ------------------------------
-    app_dir = get_app_dir()
-    config_path = os.path.join(app_dir, "config.yaml")
-
-    config = wwm_config.load_config(path=config_path)
-
-    # ------------------------------
-    # Configure logger
-    # ------------------------------
-    IS_EXE = getattr(sys, "frozen", False)
-    logging.basicConfig(
-        level=logging.INFO if IS_EXE else logging.DEBUG,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    logger = logging.getLogger(__name__)
-    logger.info(f"Version: {BUILD_VERSION}")
-    logger.info("Starting...")
-    main()
     logger.info("Ended.")

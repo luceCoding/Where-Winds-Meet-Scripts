@@ -1,0 +1,20 @@
+app_title: "Where Winds Meet"
+
+material_match_threshold: 0.65
+waypoint_match_threshold: 0.6
+visited_match_threshold: 0.95
+
+top_n_closest: 3
+
+seconds_between_actions: 2.0
+seconds_for_each_material: 60.0
+seconds_till_revisit: 300.0
+seconds_for_loading_screen: 5.0
+
+key_stop_script: 'F3'
+key_escape: "{ESC}"
+key_wayfinder: 'v'
+key_confirm: ' '
+key_map: 'm'
+key_character_pickup: 'f'
+key_spirited_courser_pickup: 'z'

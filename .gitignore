@@ -59,4 +59,13 @@ ruff_cache/
 .eggs/
 
 # --- Images ---
-*.png
+#*.png
+
+# --- Pyarmor ---
+*.spec
+.pyarmor/
+
+# --- Cryptography ---
+*.pem
+*.bin
+constants.py

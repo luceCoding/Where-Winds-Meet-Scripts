@@ -1,12 +1,14 @@
+import sys
+sys.path.append("..")
+
 import os
 import time
 import argparse
 from pynput import keyboard as pynput_keyboard
 from pynput import mouse as pynput_mouse
 import threading
-from wwm.window.window import Window
+from wwm.window import Window
 import cv2 as cv
-
 
 def main():
     # Directory to save screenshots
